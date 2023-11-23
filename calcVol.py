@@ -200,8 +200,11 @@ if __name__ == '__main__':
     obsid = ''
     onecycle,twocycle,firstcycle_time,firstcycle_size,nextcycle_size,nextcycle_time = 0,0,0,0,0,0
     idx = indices[0]
-    columns = ['FRAME_NO', 'OBSERV_ID', 'BIN_EN', 'FRAME_TYPE', 'FW1', 'FW2', 'TIME_ELAPSED', 'SIZE_ELAPSED', 'CYCLE_NO', 'SEQ_NO']
+    columns = ['FRAME_NO', 'OBSERV_ID', 'BIN_EN', 'FRAME_TYPE', 'FW1', 'FW2', 'CYCLE_NO', 'SEQ_NO','EXP_TIME']
     new_row = []
+    binned_time = []
+    prev_time = 0
+    now_time = 0
     #print(full_data[0],full_data[-1])
     while idx != indices[-1]+1:
 
@@ -267,11 +270,15 @@ if __name__ == '__main__':
             frame_count +=1
             if fsize == 0 and set_bin == 0:
                 n_fullframe +=1
+                
             if fsize == 0 and set_bin == 1:
                 n_binned +=1
+                
             if fsize == 1:
                 n_roi +=1
-            frame = [ frame_count, obsid, set_bin, ftype, fw1_now, fw2_now, calc_ttime, calc_size, cycle, seq ]
+            exp_time_ = exp_time(exp_table,expid)
+            #frame = [ frame_count, obsid, set_bin, ftype, fw1_now, fw2_now, calc_ttime, calc_size, cycle, seq,exp_time ]
+            frame = [frame_count, obsid, set_bin, ftype, fw1_now, fw2_now, cycle, seq,exp_time_]
             new_row.append(frame)
             # print('>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<')
             # print(f'CCD_START command seen:\nFilter movement:{[fw1_past,fw2_past]} --> {[fw1_now,fw2_now]}\nFrame,Bin: {fsize} {set_bin}')
@@ -282,6 +289,11 @@ if __name__ == '__main__':
             calc_ttime += exp_time(exp_table,expid)
             calc_ttime += ccd_readout_time(output,fsize,set_bin,args.X1,args.Y1,args.dx,args.dy,args.overscan)
 
+            if fsize == 0 and set_bin == 1 and onecycle == 0:
+                now_time = calc_ttime
+                difftime = now_time - prev_time
+                prev_time = now_time
+                binned_time.append(difftime)
             calc_size += calc_sizes(fsize,set_bin,args.dx,args.dy,args.overscan)
 
             min30_time += delay_time(delay_table,exp_table,fsize,set_bin,expid)
@@ -328,7 +340,9 @@ if __name__ == '__main__':
     
     print('Breakdown(FF,binned,ROI)')
     print(n_fullframe,n_binned,n_roi)
-    
+    print('\n Binned Frame time difference\n')
+    print(binned_time)
+ 
     all_frames = pd.DataFrame(new_row, columns=columns)
     all_frames.to_csv('frame_by_frame.csv', index=False, header=True)
     if ftype != '00':
