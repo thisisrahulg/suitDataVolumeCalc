@@ -90,5 +90,5 @@ def find_readout_time(x1,y1,dx,dy,overscan):
 
 if __name__ == '__main__':
     print('Checking random number') 
-    print(find_readout_time(1691,1721,704,704,14))
+    print(find_readout_time(608,1908,320,320,14))
  

@@ -86,7 +86,8 @@ def delay_time(delay_table,exp_table,fsize,set_bin,expid):
 
 
 def wheel_move(fw1_past,fw2_past,fw1_now,fw2_now):
-    multiplier = [0.000,1.570,2.368,3.345,4.138]
+    #multiplier = [0.000,1.570,2.368,3.345,4.138]
+    multiplier = [0.000,1.,1.,1.,1.]
     check = [0,1,2,3,4]
     val1 = abs(float(fw1_now) - float(fw1_past))
     val2 = abs(float(fw2_now) - float(fw2_past))
@@ -108,14 +109,14 @@ def wheel_move(fw1_past,fw2_past,fw1_now,fw2_now):
 def ccd_readout_time(output,fsize,set_bin,x1,y1,dx,dy,overscan):
     if fsize == 0:
         if set_bin == 0:
-            #read_time = find_readout_time(0,20,4095,4095,overscan)
-            return output*15.652571428571429 + 0.20679999999999998
-            #return output*read_time
+            read_time = find_readout_time(0,20,4095,4095,overscan)
+            #return output*15.652571428571429 + 0.20679999999999998*2
+            return output*read_time +  0.20679999999999998*2 
         elif set_bin == 1:
-            #read_bintime = find_readout_time(0,20,2047,2047,overscan)
+            read_bintime = find_readout_time(0,20,2047,2047,overscan)
             #print('setbin1:',read_bintime)
-            return output*7.928685714285714 + 0.20679999999999998 #8.916  # 8.159
-            #return output*read_bintime
+            #return output*7.928685714285714 + 0.20679999999999998*2 #8.916  # 8.159
+            return output*read_bintime  +  0.20679999999999998*2 
         else:
             print('Invalid frame type and bin size')
             sys.exit(-1)
@@ -123,7 +124,7 @@ def ccd_readout_time(output,fsize,set_bin,x1,y1,dx,dy,overscan):
             read_roitime = find_readout_time(x1,y1,dx,dy,overscan)
             #read_roitime = 2.269 
            # print('roi',read_roitime)
-            return output*read_roitime + 0.20679999999999998
+            return output*read_roitime + 0.20679999999999998*2
     else:
         print('Invalid frame type and bin size')
         sys.exit(-1)
@@ -211,40 +212,54 @@ if __name__ == '__main__':
         now_cmd = find_cmd(full_data,idx)
         # print(idx,now_cmd)
         if 'JUMP_EXT:' in now_cmd: #break at flare routineS
+            calc_ttime += 2.0/1000.
             break
         if 'SET_FRAME_TYPE' in now_cmd:
+            calc_ttime += 2.0/1000.
             ftype = str(now_cmd[-1])
             if ftype == '00':
                 calb_time = calc_ttime
                 calb_size = calc_size
         if 'SET_CYCLE' in now_cmd:
+            calc_ttime += 2.0/1000.
             cycle = int(now_cmd[-1],16)
             if args.cycle is not None:
                 cycle = args.cycle
             cycle_val = cycle
         if 'SET_FRAME_SIZE' in now_cmd:
+            calc_ttime += 2.0/1000.
             fsize = int(now_cmd[-1],16)
         if 'SET_BIN' in now_cmd:
+            calc_ttime += 2.0/1000.
             set_bin = int(now_cmd[-1],16)
         if 'SET_EXP_TIME' in now_cmd:
+            calc_ttime += 2.0/1000.
             expid = str(now_cmd[-1])
         if 'MOVE_FW1' in now_cmd:
+            calc_ttime += 2.0/1000.
             fw1_now = int(now_cmd[-1],16)
         if 'MOVE_FW2' in now_cmd:
+            calc_ttime += 2.0/1000.
             fw2_now = int(now_cmd[-1],16)
         if 'SET_OBSERV_ID' in now_cmd:
+            calc_ttime += 2.0/1000.
             obsid = str(now_cmd[-1])
             if obsid  == 'F7':
                 print('Infinite loop wait, exiting the calculation')
                 break
-
+        if 'SET_LED' in now_cmd:
+            calc_ttime += 2.0/1000.
+            calc_ttime += 1.57
+    
         if 'WAIT' in now_cmd:
+            calc_ttime += 2.0/1000.
             # print(now_cmd)
             #print(int(now_cmd[-1],16)*2)
             calc_ttime += (int(now_cmd[-1],16)*2.)/1000.
             min30_time += (int(now_cmd[-1],16)*2.)/1000.
 
         if 'JMP' in now_cmd:
+            calc_ttime += 2.0/1000.
             if str(now_cmd[-1]) != 'REPEAT_CAL' and str(now_cmd[-1]) != 'REPEAT_BOOT':
                 idx = find_idx(full_data,str(now_cmd[-1])+':')
                 continue
@@ -252,21 +267,26 @@ if __name__ == '__main__':
                 print('REPEAT_CAL or REPEAT BOOT jump reached.' )
 
         if 'SET_SEQ' in now_cmd:
+            calc_ttime += 2.0/1000.
             seq = int(now_cmd[-1],16)
             if seq !=3 and args.roiseq is not None:
                 seq = args.roiseq 
             if seq != 3 and seq not in seq_val:
                 seq_val.append(seq)
         if 'DCR_SEQ' in now_cmd:
+            calc_ttime += 2.0/1000.
             seq -= 1
         if 'FIND_FLARE_SELF' in now_cmd or 'FIND_FLARE_EXT' in now_cmd:
+            calc_ttime += 2.0/1000.
             calc_ttime += 1.4
             min30_time += 1.4
         if 'JNZS' in now_cmd:
+            calc_ttime += 2.0/1000.
             if seq != 0:
                 idx = find_idx(full_data,str(now_cmd[-1])+':')
                 continue
         if 'CCD_START' in now_cmd:
+            calc_ttime += 2.0/1000.
             frame_count +=1
             if fsize == 0 and set_bin == 0:
                 n_fullframe +=1
@@ -313,6 +333,7 @@ if __name__ == '__main__':
                 min30_size = 0
 
         if 'DCR_CYCLE' in now_cmd:
+            calc_ttime += 2.0/1000.
             cycle -= 1
             if onecycle == 0:
                 firstcycle_time = calc_ttime
@@ -324,6 +345,7 @@ if __name__ == '__main__':
                 twocycle = 1
 
         if 'JNZC' in now_cmd:
+            calc_ttime += 2.0/1000.
             if cycle != 0:
                 idx = find_idx(full_data,str(now_cmd[-1]+':'))
                 continue
@@ -344,7 +366,7 @@ if __name__ == '__main__':
     print(binned_time)
  
     all_frames = pd.DataFrame(new_row, columns=columns)
-    all_frames.to_csv('frame_by_frame.csv', index=False, header=True)
+    all_frames.to_csv(f'{os.path.basename(args.sequenceName)}_frame_by_frame.csv', index=False, header=True)
     if ftype != '00':
         calb_time = calc_ttime
         calb_size = calc_size
