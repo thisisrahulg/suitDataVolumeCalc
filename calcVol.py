@@ -68,26 +68,27 @@ def calc_sizes(fsize,set_bin,dx,dy,overscan):
 
 def exp_time(exp_table,ID):
     if ID != '':
-        return float(exp_table['EXP_VAL'][exp_table['EXP_ID'] == ID])/1000.0
+        #print(float(exp_table['EXP_VAL'][exp_table['EXP_ID'] == ID]))
+        return float(exp_table['FULL_MOVE'][exp_table['EXP_ID'] == ID])/1000.0
     else:
         return 0
 
-def delay_time(delay_table,exp_table,fsize,set_bin,expid):
-    if expid != '':
-        exp = exp_time(exp_table,expid)
-    else:
-        exp = 0
-    delay = delay_table['DELAY'][(delay_table['ROI_FF'] == int(fsize)) & (delay_table['BIN'] == int(set_bin)) & (delay_table['EXP'] == int(exp*1000))]
-    if len(delay) == 0:
-        delay = 1200.0 # if exposure is not in list, give the average value of delay
-
-    return float(delay)/1000.0
+#def delay_time(delay_table,exp_table,fsize,set_bin,expid):
+#    if expid != '':
+#        exp = exp_time(exp_table,expid)
+#    else:
+#        exp = 0
+#    delay = delay_table['DELAY'][(delay_table['ROI_FF'] == int(fsize)) & (delay_table['BIN'] == int(set_bin)) & (delay_table['EXP'] == int(exp*1000))]
+#    if len(delay) == 0:
+#        delay = 1200.0 # if exposure is not in list, give the average value of delay
+#
+#    return float(delay)/1000.0
 
 
 
 def wheel_move(fw1_past,fw2_past,fw1_now,fw2_now):
-    #multiplier = [0.000,1.570,2.368,3.345,4.138]
-    multiplier = [0.000,1.,1.,1.,1.]
+    multiplier = [0.000,1.570,2.368,3.345,4.138]
+    #multiplier = [0.000,1.,1.,1.,1.]
     check = [0,1,2,3,4]
     val1 = abs(float(fw1_now) - float(fw1_past))
     val2 = abs(float(fw2_now) - float(fw2_past))
@@ -104,6 +105,7 @@ def wheel_move(fw1_past,fw2_past,fw1_now,fw2_now):
         sys.exit()
     val1 = multiplier[int(val1)]
     val2 = multiplier[int(val2)]
+    #print(val1+val2)
     return val1+val2
 
 def ccd_readout_time(output,fsize,set_bin,x1,y1,dx,dy,overscan):
@@ -111,12 +113,12 @@ def ccd_readout_time(output,fsize,set_bin,x1,y1,dx,dy,overscan):
         if set_bin == 0:
             read_time = find_readout_time(0,20,4095,4095,overscan)
             #return output*15.652571428571429 + 0.20679999999999998*2
-            return output*read_time +  0.20679999999999998*2 
+            return output*read_time +  0.20679999999999998 
         elif set_bin == 1:
             read_bintime = find_readout_time(0,20,2047,2047,overscan)
             #print('setbin1:',read_bintime)
             #return output*7.928685714285714 + 0.20679999999999998*2 #8.916  # 8.159
-            return output*read_bintime  +  0.20679999999999998*2 
+            return output*read_bintime  +  0.20679999999999998 
         else:
             print('Invalid frame type and bin size')
             sys.exit(-1)
@@ -170,7 +172,7 @@ if __name__ == '__main__':
     full_data= read_fdata(data)
 
     exp_table = pd.read_csv('exposure_table.csv')
-    delay_table = pd.read_csv('delay_details.csv')
+    #delay_table = pd.read_csv('delay_details.csv')
 
     full_cmds = [itm[1] for itm in full_data]
     indices = [itm[0] for itm in full_data]
@@ -210,6 +212,7 @@ if __name__ == '__main__':
     while idx != indices[-1]+1:
 
         now_cmd = find_cmd(full_data,idx)
+        #print(now_cmd)
         # print(idx,now_cmd)
         if 'JUMP_EXT:' in now_cmd: #break at flare routineS
             calc_ttime += 2.0/1000.
@@ -249,7 +252,7 @@ if __name__ == '__main__':
                 break
         if 'SET_LED' in now_cmd:
             calc_ttime += 2.0/1000.
-            calc_ttime += 1.57
+            #calc_ttime += 1.57
     
         if 'WAIT' in now_cmd:
             calc_ttime += 2.0/1000.
@@ -265,6 +268,7 @@ if __name__ == '__main__':
                 continue
             else:
                 print('REPEAT_CAL or REPEAT BOOT jump reached.' )
+                break
 
         if 'SET_SEQ' in now_cmd:
             calc_ttime += 2.0/1000.
@@ -276,6 +280,7 @@ if __name__ == '__main__':
         if 'DCR_SEQ' in now_cmd:
             calc_ttime += 2.0/1000.
             seq -= 1
+            #print(seq)
         if 'FIND_FLARE_SELF' in now_cmd or 'FIND_FLARE_EXT' in now_cmd:
             calc_ttime += 2.0/1000.
             calc_ttime += 1.4
@@ -304,9 +309,9 @@ if __name__ == '__main__':
             # print(f'CCD_START command seen:\nFilter movement:{[fw1_past,fw2_past]} --> {[fw1_now,fw2_now]}\nFrame,Bin: {fsize} {set_bin}')
             # print(f'Exposure ID, EXP_val: {expid} {exp_time(exp_table,expid)}s')
             # print(f'Delay time: {delay_time(delay_table,exp_table,fsize,set_bin,expid)}s')
-            calc_ttime += wheel_move(fw1_past,fw2_past,fw1_now,fw2_now)
-            calc_ttime += delay_time(delay_table,exp_table,fsize,set_bin,expid)
-            calc_ttime += exp_time(exp_table,expid)
+            #calc_ttime += wheel_move(fw1_past,fw2_past,fw1_now,fw2_now)
+            #calc_ttime += delay_time(delay_table,exp_table,fsize,set_bin,expid)
+            calc_ttime += exp_time_
             calc_ttime += ccd_readout_time(output,fsize,set_bin,args.X1,args.Y1,args.dx,args.dy,args.overscan)
 
             if fsize == 0 and set_bin == 1 and onecycle == 0:
@@ -316,9 +321,9 @@ if __name__ == '__main__':
                 binned_time.append(difftime)
             calc_size += calc_sizes(fsize,set_bin,args.dx,args.dy,args.overscan)
 
-            min30_time += delay_time(delay_table,exp_table,fsize,set_bin,expid)
-            min30_time += wheel_move(fw1_past,fw2_past,fw1_now,fw2_now)
-            min30_time += exp_time(exp_table,expid)
+            #min30_time += delay_time(delay_table,exp_table,fsize,set_bin,expid)
+            #min30_time += wheel_move(fw1_past,fw2_past,fw1_now,fw2_now)
+            #min30_time += exp_time(exp_table,expid)
             min30_time += ccd_readout_time(output,fsize,set_bin,args.X1,args.Y1,args.dx,args.dy,args.overscan)
 
             min30_size += calc_sizes(fsize,set_bin,args.dx,args.dy,args.overscan)
@@ -334,6 +339,7 @@ if __name__ == '__main__':
 
         if 'DCR_CYCLE' in now_cmd:
             calc_ttime += 2.0/1000.
+            print(cycle)
             cycle -= 1
             if onecycle == 0:
                 firstcycle_time = calc_ttime
@@ -423,20 +429,4 @@ if __name__ == '__main__':
     }
     df = pd.DataFrame(dict)
     df.to_csv(f'{os.path.basename(args.sequenceName)}_calcVol_output.csv',mode='a',index=False,header=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

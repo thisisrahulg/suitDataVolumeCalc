@@ -16,7 +16,6 @@ LINE_READ_TIME = 100e-6
 LINE_IGNORE_TIME = 1e-4
 UNDERSCAN = 50
 
-
 def find_readout_time(x1,y1,dx,dy,overscan):
     x2 = x1 + dx
     y2 = y1 + dy
@@ -84,11 +83,15 @@ def find_readout_time(x1,y1,dx,dy,overscan):
     C = Y0 - D
     
     E = overscan + UNDERSCAN
+    #print(A,B,C,D,E)
+    #print('pixel ignore time',PIXEL_READ_TIME*B)
+    #print('line ignore time',LINE_IGNORE_TIME*C)
+    #print('pixel read time',PIXEL_READ_TIME*(A+E))
     totalLineReadTime = (PIXEL_READ_TIME*(A+E) + PIXEL_IGNORE_TIME*B)*D + D*LINE_READ_TIME + LINE_IGNORE_TIME*C
     #print(totalLineReadTime)
     return totalLineReadTime
 
 if __name__ == '__main__':
     print('Checking random number') 
-    print(find_readout_time(608,1908,320,320,14))
+    print(find_readout_time(0,20,4096,4096,254))
  
