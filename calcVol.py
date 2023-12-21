@@ -87,8 +87,9 @@ def exp_time(exp_table,ID):
 
 
 def wheel_move(fw1_past,fw2_past,fw1_now,fw2_now):
-    multiplier = [0.000,1.570,2.368,3.345,4.138]
+    #multiplier = [0.000,1.570,2.368,3.345,4.138]
     #multiplier = [0.000,1.,1.,1.,1.]
+    multiplier = np.array([0.00,1.5,1.84+0.5,2.72+0.5,3.52+0.5]) #0.5 settling time
     check = [0,1,2,3,4]
     val1 = abs(float(fw1_now) - float(fw1_past))
     val2 = abs(float(fw2_now) - float(fw2_past))
@@ -309,7 +310,7 @@ if __name__ == '__main__':
             # print(f'CCD_START command seen:\nFilter movement:{[fw1_past,fw2_past]} --> {[fw1_now,fw2_now]}\nFrame,Bin: {fsize} {set_bin}')
             # print(f'Exposure ID, EXP_val: {expid} {exp_time(exp_table,expid)}s')
             # print(f'Delay time: {delay_time(delay_table,exp_table,fsize,set_bin,expid)}s')
-            #calc_ttime += wheel_move(fw1_past,fw2_past,fw1_now,fw2_now)
+            calc_ttime += wheel_move(fw1_past,fw2_past,fw1_now,fw2_now)
             #calc_ttime += delay_time(delay_table,exp_table,fsize,set_bin,expid)
             calc_ttime += exp_time_
             calc_ttime += ccd_readout_time(output,fsize,set_bin,args.X1,args.Y1,args.dx,args.dy,args.overscan)
@@ -322,7 +323,7 @@ if __name__ == '__main__':
             calc_size += calc_sizes(fsize,set_bin,args.dx,args.dy,args.overscan)
 
             #min30_time += delay_time(delay_table,exp_table,fsize,set_bin,expid)
-            #min30_time += wheel_move(fw1_past,fw2_past,fw1_now,fw2_now)
+            min30_time += wheel_move(fw1_past,fw2_past,fw1_now,fw2_now)
             #min30_time += exp_time(exp_table,expid)
             min30_time += ccd_readout_time(output,fsize,set_bin,args.X1,args.Y1,args.dx,args.dy,args.overscan)
 
