@@ -33,6 +33,37 @@ from ccd_readout_code import *
 
 warnings.filterwarnings('ignore')
 
+f1Map = {
+        '0': 0,
+        '1': 2,
+        '2': 4,
+        '3': 3,
+        '4': 2,
+        '5': 3,
+        '6': 1,
+        '7': 1
+        }
+
+
+f2Map = {
+        '0': 0,
+        '1': 2,
+        '2': 4,
+        '3': 3,
+        '4': 1,
+        '5': 1,
+        '6': 2,
+        '7': 3
+        }
+
+
+def read_fdata(data):
+    full_data = []
+    end_flag = 0
+    for ind,line in enumerate(data.readlines()):
+        line = line.split('//')[0]
+        smallline = line.strip().split('\t')
+        temp = [ind,smallline]
 def read_fdata(data):
     full_data = []
     end_flag = 0
@@ -41,7 +72,7 @@ def read_fdata(data):
         smallline = line.strip().split('\t')
         temp = [ind,smallline]
         full_data.append(temp)
-    
+
     return full_data
 
 def calc_sizes(fsize,set_bin,dx,dy,overscan):
@@ -58,12 +89,12 @@ def calc_sizes(fsize,set_bin,dx,dy,overscan):
 
     elif fsize == 1:
         dx = dx + 2*50 + overscan*2
-        
+
     else:
         print('Invalid frame type and bin size')
         sys.exit(-1)
-    
-    return dx*dy*2. + 64. 
+
+    return dx*dy*2. + 64.
 
 
 def exp_time(exp_table,ID):
@@ -89,8 +120,15 @@ def exp_time(exp_table,ID):
 def wheel_move(fw1_past,fw2_past,fw1_now,fw2_now):
     #multiplier = [0.000,1.570,2.368,3.345,4.138]
     #multiplier = [0.000,1.,1.,1.,1.]
-    multiplier = np.array([0.00,1.5,1.84+0.5,2.72+0.5,3.52+0.5]) #0.5 settling time
+    multiplier = [0.000,1.50,2.34,3.22,4.02]
+
+    #multiplier = np.array([0.00,1.5,1.84+0.5,2.72+0.5,3.52+0.5]) #0.5 settling time
     check = [0,1,2,3,4]
+    fw1_now = f1Map[str(fw1_now)]
+    fw2_now = f2Map[str(fw2_now)]
+    fw1_past = f1Map[str(fw1_past)]
+    fw2_now = f2Map[str(fw2_past)]
+
     val1 = abs(float(fw1_now) - float(fw1_past))
     val2 = abs(float(fw2_now) - float(fw2_past))
 
@@ -112,22 +150,24 @@ def wheel_move(fw1_past,fw2_past,fw1_now,fw2_now):
 def ccd_readout_time(output,fsize,set_bin,x1,y1,dx,dy,overscan):
     if fsize == 0:
         if set_bin == 0:
-            read_time = find_readout_time(0,20,4095,4095,overscan)
+            #read_time = find_readout_time(0,20,4095,4095,overscan)
             #return output*15.652571428571429 + 0.20679999999999998*2
-            return output*read_time +  0.20679999999999998 
+            return output*15.907056
+            #return output*read_time +  0.20679999999999998
         elif set_bin == 1:
-            read_bintime = find_readout_time(0,20,2047,2047,overscan)
+            #read_bintime = find_readout_time(0,20,2047,2047,overscan)
             #print('setbin1:',read_bintime)
-            #return output*7.928685714285714 + 0.20679999999999998*2 #8.916  # 8.159
-            return output*read_bintime  +  0.20679999999999998 
+            return output*8.263728#8.916  # 8.159
+            #return output*read_bintime  +  0.20679999999999998
+            #return output*read_bintime
         else:
             print('Invalid frame type and bin size')
             sys.exit(-1)
     elif fsize == 1:
             read_roitime = find_readout_time(x1,y1,dx,dy,overscan)
-            #read_roitime = 2.269 
+            #read_roitime = 2.269
            # print('roi',read_roitime)
-            return output*read_roitime + 0.20679999999999998*2
+            return output*read_roitime
     else:
         print('Invalid frame type and bin size')
         sys.exit(-1)
@@ -143,7 +183,7 @@ def find_idx(full_data,cmd):
     return index[0]
 
 if __name__ == '__main__':
-    
+
     import argparse
 
     parser = argparse.ArgumentParser(description='Script to calculate the data volume and duration for a given SUIT program sequence')
@@ -157,8 +197,6 @@ if __name__ == '__main__':
     parser.add_argument('--roiseq',default=None, type=int, help='ROI sequence number (if not given, it takes the roi sequence number in the program sequence)')
 
     args = parser.parse_args()
-    
-
     data = open(args.sequenceName, 'r')
 
     if '4output' in args.sequenceName.lower():
@@ -166,13 +204,14 @@ if __name__ == '__main__':
     elif '2output' in  args.sequenceName.lower():
         output = 2
     elif '1output' in args.sequenceName.lower():
-        output = 4 
+        output = 4
     else:
-        output = 1  
+        output = 1
 
     full_data= read_fdata(data)
 
-    exp_table = pd.read_csv('exposure_table.csv')
+    exp_table = pd.read_csv('exposureTable.csv')
+    #exp_table = pd.read_csv('exposure_table.csv')
     #delay_table = pd.read_csv('delay_details.csv')
 
     full_cmds = [itm[1] for itm in full_data]
@@ -254,7 +293,7 @@ if __name__ == '__main__':
         if 'SET_LED' in now_cmd:
             calc_ttime += 2.0/1000.
             #calc_ttime += 1.57
-    
+
         if 'WAIT' in now_cmd:
             calc_ttime += 2.0/1000.
             # print(now_cmd)
@@ -275,7 +314,7 @@ if __name__ == '__main__':
             calc_ttime += 2.0/1000.
             seq = int(now_cmd[-1],16)
             if seq !=3 and args.roiseq is not None:
-                seq = args.roiseq 
+                seq = args.roiseq
             if seq != 3 and seq not in seq_val:
                 seq_val.append(seq)
         if 'DCR_SEQ' in now_cmd:
@@ -296,10 +335,10 @@ if __name__ == '__main__':
             frame_count +=1
             if fsize == 0 and set_bin == 0:
                 n_fullframe +=1
-                
+
             if fsize == 0 and set_bin == 1:
                 n_binned +=1
-                
+
             if fsize == 1:
                 n_roi +=1
             exp_time_ = exp_time(exp_table,expid)
@@ -340,7 +379,7 @@ if __name__ == '__main__':
 
         if 'DCR_CYCLE' in now_cmd:
             calc_ttime += 2.0/1000.
-            print(cycle)
+            #print(cycle)
             cycle -= 1
             if onecycle == 0:
                 firstcycle_time = calc_ttime
@@ -366,12 +405,12 @@ if __name__ == '__main__':
     print('>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<')
     print('\n...CALCULATION COMPLETED...\n')
     print(f'TOTAL FRAMES: {frame_count}')
-    
+
     print('Breakdown(FF,binned,ROI)')
     print(n_fullframe,n_binned,n_roi)
     print('\n Binned Frame time difference\n')
     print(binned_time)
- 
+
     all_frames = pd.DataFrame(new_row, columns=columns)
     all_frames.to_csv(f'{os.path.basename(args.sequenceName)}_frame_by_frame.csv', index=False, header=True)
     if ftype != '00':
@@ -409,7 +448,7 @@ if __name__ == '__main__':
         mean = 0.5*(((calc_size)*(8.0))/(1024.*1024.*1024.))
         maxx = 0.5*(((calc_size)*(8.0))/(1024.*1024.*1024.))
         minn = 0.5*(((calc_size)*(8.0))/(1024.*1024.*1024.))
-    
+
     print(f'SEQ:{seq_val}      CYCLE:{cycle_val}')
     print(string)
     dict = {
@@ -430,4 +469,3 @@ if __name__ == '__main__':
     }
     df = pd.DataFrame(dict)
     df.to_csv(f'{os.path.basename(args.sequenceName)}_calcVol_output.csv',mode='a',index=False,header=True)
-
