@@ -112,14 +112,15 @@ def wheel_move(fw1_past,fw2_past,fw1_now,fw2_now):
 def ccd_readout_time(output,fsize,set_bin,x1,y1,dx,dy,overscan):
     if fsize == 0:
         if set_bin == 0:
-            read_time = find_readout_time(0,20,4095,4095,overscan)
-            #return output*15.652571428571429 + 0.20679999999999998*2
-            return output*read_time +  0.20679999999999998
+            # read_time = find_readout_time(0,20,4095,4095,overscan)
+            return output*15.652571428571429 + 0.20679999999999998*2
+            # return output*read_time +  0.20679999999999998
         elif set_bin == 1:
-            read_bintime = find_readout_time(0,20,2047,2047,overscan)
+            # read_bintime = find_readout_time(0,20,2047,2047,overscan)
             #print('setbin1:',read_bintime)
-            #return output*7.928685714285714 + 0.20679999999999998*2 #8.916  # 8.159
-            return output*read_bintime  +  0.20679999999999998
+            # return output*7.928685714285714 + 0.20679999999999998*2 #8.916  # 8.159
+            return output*8.916 + 0.20679999999999998*2 #8.916  # 8.159
+            # return output*read_bintime  +  0.20679999999999998
         else:
             print('Invalid frame type and bin size')
             sys.exit(-1)
@@ -151,8 +152,7 @@ def check_cnc_in_a_jumploop(full_data, loop_name, idx):
         else:
             idx +=1
 
-
-def process_sequence(full_cmds, indices, exp_table, output, args ):
+def process_sequence(full_cmds, indices, exp_table, output, args):
     n_fullframe = 0
     n_binned = 0
     n_roi = 0
@@ -239,7 +239,7 @@ def process_sequence(full_cmds, indices, exp_table, output, args ):
             if ('2A43','022A', '4427') in now_cmd:
                 ledflag = True
             # Sanity check: filter wheel settings should be there.
-            #calc_ttime += 1.57
+            # calc_ttime += 1.57
 
         elif 'HOME_SHU' in now_cmd:
             calc_ttime += 2.0/1000.
@@ -278,10 +278,10 @@ def process_sequence(full_cmds, indices, exp_table, output, args ):
 
             #print(seq)
         elif 'FIND_FLARE_SELF' in now_cmd or 'FIND_FLARE_EXT' in now_cmd:
-            if prev_bin != 1:
-                print(f'Line: {idx+1}')
-                print('Binned image is not taken before this. Invalid sequence')
-                sys.exit()
+            # if prev_bin != 1:
+            #     print(f'Line: {idx+1}')
+            #     print('Binned image is not taken before this. Invalid sequence')
+            #     sys.exit()
             calc_ttime += 2.0/1000.
             calc_ttime += 1.4
             min30_time += 1.4
@@ -309,11 +309,13 @@ def process_sequence(full_cmds, indices, exp_table, output, args ):
 
             # Sanity check: filter wheel settings should be there.
             if fw1_past == None or fw2_past == None:
-                print(f'Line: {idx+1}\nFilter wheel setting is not found before CCD_START, ')
+                print(f'Line: {idx+1}')
+                print('Filter wheel setting is not found before CCD_START, ')
                 sys.exit()
             # Sanity check: other settings should be there.
             elif set_bin == None or expid == None or obsid == None or ftype == None or fsize == None:
-                print(f'Line {idx+1}\nFundamental settings not found before CCD START')
+                print(f'Line: {idx+1}')
+                print(f'Fundamental settings not found before CCD START')
                 sys.exit()
             elif set_bin == 1 and fsize == 1:
                 print(f'Line: {idx+1}')
@@ -330,12 +332,15 @@ def process_sequence(full_cmds, indices, exp_table, output, args ):
                     print('Binned image should be NB3 filter')
                     sys.exit()
 
-
-
             #Setting prev_bin to 1 if current image in ROI
             prev_bin = 1 if set_bin == 1 else 0
 
             calc_ttime += 2.0/1000.
+            calc_ttime += (2*(204.8))/1000.
+
+            #unknown delay per frame
+            calc_ttime += 240/1000.
+
             frame_count +=1
             if fsize == 0 and set_bin == 0:
                 n_fullframe +=1
@@ -432,7 +437,7 @@ def process_sequence(full_cmds, indices, exp_table, output, args ):
     else:
         print('Only one cycle')
         onecycle_time = calc_ttime/(60.*60.)
-        onecycle_size = 0.5*(((calc_size)*(8.0))/(1024.*1024.*1024.))
+        onecycle_size = (((calc_size)*(8.0))/(1024.*1024.*1024.))/1.7
         cycle_val = 1
     size_list = np.array(size_list)
     s1 = f'Total duration in Seconds: {calc_ttime}\n'
